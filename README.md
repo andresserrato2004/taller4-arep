@@ -67,6 +67,8 @@ cd taller3-arep
 ### With Maven (recommended)
 
 ```bash
+mvn clean install
+
 mvn package
 
 java -jar target/demo-0.0.1-SNAPSHOT.jar 
