@@ -1,0 +1,199 @@
+/* Combined Web Framework Demo Styles */
+
+/* Reset and base styles */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #333;
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Header styles */
+header {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 2rem;
+    justify-content: center;
+}
+
+h1 {
+    color: #4a5568;
+    text-align: center;
+    margin: 0;
+    margin-bottom: 30px;
+    font-size: 2.2em;
+}
+
+h2 {
+    color: #667eea;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 10px;
+    margin-top: 30px;
+}
+
+h3 {
+    color: #764ba2;
+    margin-bottom: 10px;
+}
+
+/* Form styles */
+section {
+    margin-bottom: 1.5rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+    color: #555;
+}
+
+input {
+    padding: 0.75rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+    width: 200px;
+}
+
+input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+button {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    background: #5a67d8;
+    transform: translateY(-1px);
+}
+
+.panel {
+    margin-top: 0.75rem;
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+    min-height: 40px;
+    font-family: 'Courier New', monospace;
+    color: #2d3748;
+}
+
+/* Section styles */
+.forms-section, .api-section, .features, .static-files {
+    margin: 30px 0;
+}
+
+.endpoint {
+    background: #f7fafc;
+    padding: 20px;
+    margin: 15px 0;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+    transition: all 0.2s ease;
+}
+
+.endpoint a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 5px 10px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    display: inline-block;
+    margin: 5px 0;
+}
+
+.endpoint a:hover {
+    background: #cbd5e0;
+    transform: translateY(-1px);
+    transition: all 0.2s;
+}
+
+.features {
+    background: #f0fff4;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #48bb78;
+}
+
+.features ul {
+    list-style: none;
+    padding: 0;
+}
+
+.features li {
+    padding: 8px 0;
+    font-size: 1.1em;
+}
+
+.static-files {
+    background: #fef5e7;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #ed8936;
+}
+
+p {
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .container {
+        margin: 10px;
+        padding: 15px;
+    }
+    
+    h1 {
+        font-size: 1.8em;
+    }
+    
+    header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    input {
+        width: 100%;
+        margin-right: 0;
+    }
+    
+    button {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+}

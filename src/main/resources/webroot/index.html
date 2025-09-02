@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Servidor Web en Java - Framework Demo</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" type="image/x-icon" href="img/favico.ico" />
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <img src="img/logo.jpg" alt="Logo" width="64" height="64" />
+            <h1>🚀 Servidor Web en Java (Framework Demo)</h1>
+        </header>
+
+        <p>Bienvenido a nuestro framework web! Esta página combina funcionalidades interactivas y endpoints REST.</p>
+
+        <!-- Sección de formularios interactivos -->
+        <div class="forms-section">
+            <h2>Formularios Interactivos</h2>
+            
+            <section class="endpoint">
+                <h3>Formulario con GET (XMLHttpRequest)</h3>
+                <form onsubmit="return false;">
+                    <label for="name">Nombre:</label>
+                    <input id="name" name="name" type="text" value="John" />
+                    <button type="button" onclick="loadGetMsg()">Enviar</button>
+                </form>
+                <div id="getrespmsg" class="panel" aria-live="polite"></div>
+            </section>
+
+            <section class="endpoint">
+                <h3>Formulario con POST (fetch)</h3>
+                <form onsubmit="return false;">
+                    <label for="postname">Nombre:</label>
+                    <input id="postname" name="name" type="text" value="John" />
+                    <button type="button" onclick="loadPostMsg(postname)">Enviar</button>
+                </form>
+                <div id="postrespmsg" class="panel" aria-live="polite"></div>
+            </section>
+        </div>
+        
+        <!-- Sección de endpoints REST -->
+        <div class="api-section">
+            <h2>REST API Endpoints</h2>
+            <div class="endpoint">
+                <h3>Hello Endpoint</h3>
+                <p>Try: click here<a href="/hello?name=Pedro" target="_blank">/hello?name=Pedro</a></p>
+                <p>Returns a personalized greeting</p>
+            </div>
+            
+            <div class="endpoint">
+                <h3>Pi Endpoint</h3>
+                <p>Try: click here<a href="/pi" target="_blank">/pi</a></p>
+                <p>Returns the value of π</p>
+            </div>
+            
+            <div class="endpoint">
+                <h3>Info Endpoint</h3>
+                <p>Try: click here click here <a href="/info" target="_blank">/info</a></p>
+                <p>Returns request information</p>
+            </div>
+        </div>
+        
+        <div class="static-files">
+            <h2>Archivos Estáticos</h2>
+            <p>
+                Prueba también archivos estáticos: 
+                <a href="/styles.css" target="_blank">/styles.css</a>,
+                <a href="/app.js" target="_blank">/app.js</a>, 
+                <a href="/img/logo.jpg" target="_blank">/img/logo.jpg</a>
+            </p>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+
+</html>

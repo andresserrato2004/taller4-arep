@@ -10,7 +10,7 @@ public class GreetingController {
 	private final AtomicLong counter = new AtomicLong();
 
 	@GetMapping("/greeting")
-	public static String greeting() {
-		return "Hola world";
+	public String greeting(@RequestParam(value = "name", defaultValue = "World") String name) {
+		return "Hola " + name;
 	}
 }
