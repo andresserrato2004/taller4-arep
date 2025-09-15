@@ -166,6 +166,39 @@ button:hover {
     border-left: 4px solid #ed8936;
 }
 
+/* Server control section styles */
+.server-control {
+    background: #fff5f5;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #e53e3e;
+    margin: 30px 0;
+}
+
+.shutdown-btn {
+    background: #e53e3e;
+    color: white;
+    padding: 12px 20px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(229, 62, 62, 0.2);
+}
+
+.shutdown-btn:hover {
+    background: #c53030;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(229, 62, 62, 0.3);
+}
+
+.shutdown-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(229, 62, 62, 0.2);
+}
+
 p {
     line-height: 1.6;
     margin-bottom: 15px;

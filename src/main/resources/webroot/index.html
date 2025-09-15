@@ -74,6 +74,17 @@
                 <a href="/img/logo.jpg" target="_blank">/img/logo.jpg</a>
             </p>
         </div>
+        
+        <!-- Sección de control del servidor -->
+        <div class="server-control">
+            <h2>Control del Servidor</h2>
+            <div class="endpoint">
+                <h3>Apagar Servidor</h3>
+                <p>Detiene el servidor de manera elegante (graceful shutdown)</p>
+                <button type="button" onclick="shutdownServer()" class="shutdown-btn">🛑 Apagar Servidor</button>
+                <div id="shutdownmsg" class="panel" aria-live="polite"></div>
+            </div>
+        </div>
     </div>
     
     <script src="app.js"></script>

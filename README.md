@@ -1,53 +1,79 @@
-# WebApp Framework — Minimal HTTP Server in Java
+# Web Framework for REST Services and Static File Management
 
-A small sequential HTTP server implemented from scratch in Java 21. It supports serving static files from the classpath, discovering controllers by annotations, and basic routing via a tiny IoC-like micro-framework using annotations `@RestController`, `@GetMapping` and `@RequestParam`.
+A powerful concurrent web framework implemented from scratch in Java 21 that allows developers to register REST endpoints with annotation-based controllers and serve static files. Features include thread pool concurrency, graceful shutdown, and IoC-style dependency injection.
+
+> Academic exercise for the course: Arquitecturas Empresariales (AREP) — Workshop 3.
 
 ## Features
 
-🚀 Lambda-based route registration: define handlers with small, focused functions
+🚀 **Annotation-based Controllers**: Define REST endpoints using `@RestController`, `@GetMapping`, and `@RequestParam`
 
-🔍 Query parameter extraction: easy access to URL query parameters from handler code
+🔍 **Query Parameter Injection**: Automatic parameter binding with default value support
 
-📁 Unified static files: all static assets served from `webroot` (packaged under resources)
+📁 **Static File Serving**: Unified static assets served from `webroot` (packaged under resources)
 
-📡 Request/Response objects: lightweight wrappers to access path, headers, query params, and body
+📡 **Concurrent Request Handling**: Thread pool executor for handling multiple simultaneous requests
 
-🏗️ Modular architecture: components are separated for clarity and easier extension
+🛑 **Graceful Shutdown**: Proper cleanup of resources and thread pools
 
+🏗️ **Custom Framework**: Built from scratch without Spring dependencies
 
-
-### Architecture (files)
-
-- `RouteHandler.java` — functional interface for route handlers
-- `Request.java` — wrapper for an incoming HTTP request (query params, headers, body)
-- `Response.java` — wrapper for response construction
-- `WebFramework.java` — static API for registering routes and configuring static files
-- `HttpServer.java` — the low-level HTTP accept loop and dispatcher
-- `App.java` — example application that demonstrates usage
+⚡ **Auto-Discovery**: Automatic scanning and registration of controller classes
 
 
-## Static files configuration
+## Quick Start
+
+### Example Controller
 
 ```java
-WebFramework.staticfiles("webroot"); // sets the directory for static resources
+import com.example.demo.annotations.GetMapping;
+import com.example.demo.annotations.RequestParam;
+import com.example.demo.annotations.RestController;
+
+@RestController
+public class GreetingController {
+    @GetMapping("/greeting")
+    public String greeting(@RequestParam(value = "name", defaultValue = "World") String name) {
+        return "Hello " + name;
+    }
+}
 ```
 
-Where the framework looks for static files (in order):
-1. `target/classes/webroot` (after Maven build)
-2. `src/main/resources/webroot` (source)
-3. `webroot` (project root / direct path)
+### Architecture (core components)
 
-Static files in this repository live under `src/main/resources/webroot/`.
+- `HttpServer.java` — concurrent HTTP server with thread pool management
+- `annotations/*` — custom annotations for IoC framework (`@RestController`, `@GetMapping`, `@RequestParam`)
+- `examples/GreetingController.java` — example REST controller
+- `httpserver/HttpRequest.java` — HTTP request parsing and parameter extraction
+- `DemoApplication.java` — main application entry point
+
+## Concurrency Features
+
+The server uses a thread pool executor to handle multiple concurrent requests:
+
+- **Thread Pool Size**: 10 concurrent connections (configurable)
+- **Request Isolation**: Each request is handled in its own thread
+- **Graceful Shutdown**: Proper cleanup when server stops
+- **Thread Safety**: Controller instances are shared safely across threads
+
+## Shutdown Options
+
+1. **Ctrl+C**: Graceful shutdown via shutdown hook
+2. **HTTP Endpoint**: `GET /shutdown` to stop server remotely
+3. **Programmatic**: Call `HttpServer.stop()` from code
 
 ## Example endpoints
 
-- `http://localhost:35000/hello?name=Pedro` → Personalized greeting
+- `http://localhost:35000/app/greeting?name=Pedro` → Personalized greeting
+- `http://localhost:35000/shutdown` → Shutdown the server gracefully
 
 Static file examples:
 
 - `http://localhost:35000/` or `/index.html` → demo page
 - `http://localhost:35000/styles.css` → stylesheet
 - `http://localhost:35000/app.js` → JavaScript
+- `http://localhost:35000/img/favico.ico` → favicon
+- `http://localhost:35000/img/logo.jpg` → logo image
 
 ## Requirements
 
@@ -88,17 +114,17 @@ Open `http://localhost:35000/` in your browser. Stop the server with Ctrl+C.
 src/
 ├── main/
 │   ├── java/com/example/demo/
-│   │   ├── RouteHandler.java    # functional interface (example)
-│   │   ├── Request.java         # request wrapper
-+│   │   ├── Response.java        # response wrapper
-│   │   ├── WebFramework.java    # convenience API for registering handlers
-│   │   ├── HttpServer.java      # HTTP server core
-│   │   └── App.java             # example application
+│   │   ├── DemoApplication.java
+│   │   ├── annotations/{GetMapping.java, RequestParam.java, RestController.java}
+│   │   ├── examples/{GreetingController.java}
+│   │   └── httpserver/{HttpRequest.java, HttpResponse.java, HttpServer.java}
 │   └── resources/webroot/
 │       ├── index.html
 │       ├── styles.css
 │       ├── app.js
 │       └── img/
+│           ├── favico.ico
+│           └── logo.jpg
 └── test/
     └── java/com/example/demo/
         └── HttpServerTest.java
@@ -118,14 +144,19 @@ curl "http://localhost:35000/"
 
 ## REST API Endpoints
 
-- GET `/hello?name=Pedro` → `Hello Pedro`
+- GET `/app/greeting?name=Pedro` → `Hello Pedro`
+- GET `/shutdown` → Graceful server shutdown
 
 ## Static File Endpoints
 
-- GET `/` → Demo HTML page
-- GET `/index.html` → Demo HTML page
-- GET `/styles.css` → CSS stylesheet
-- GET `/app.js` → JavaScript file
+* GET `/` → Demo HTML page
+* GET `/index.html` → Demo HTML page
+* GET `/styles.css` → CSS stylesheet
+* GET `/app.js` → JavaScript file
+* GET `/img/logo.jpg` → Example image
+
+## Development
+You can add or update static frontend files directly in `src/main/resources/webroot/`.
 
 
 ## Author

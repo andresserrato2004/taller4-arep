@@ -25,6 +25,35 @@ function loadPostMsg(inp) {
     });
 }
 
+// Función para apagar el servidor
+function shutdownServer() {
+  const shutdownMsg = document.getElementById("shutdownmsg");
+  
+  // Confirmar acción
+  if (!confirm("¿Estás seguro de que quieres apagar el servidor?")) {
+    return;
+  }
+  
+  shutdownMsg.innerHTML = "⏳ Enviando señal de apagado...";
+  shutdownMsg.style.color = "#ffa500";
+  
+  fetch("/shutdown", { method: "GET" })
+    .then((res) => res.text())
+    .then((txt) => {
+      shutdownMsg.innerHTML = "✅ " + txt;
+      shutdownMsg.style.color = "#4ecdc4";
+      
+      // Mostrar mensaje adicional
+      setTimeout(() => {
+        shutdownMsg.innerHTML += "<br>🔌 El servidor se está apagando...";
+      }, 1000);
+    })
+    .catch((err) => {
+      shutdownMsg.innerHTML = "❌ Error al apagar el servidor: " + err;
+      shutdownMsg.style.color = "#ff6b6b";
+    });
+}
+
 // Framework Demo functionality
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Combined Web Framework Demo loaded!');

@@ -13,19 +13,23 @@ import java.lang.reflect.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.nio.file.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.Enumeration;
 
 public class HttpServer {
 
-    // map path -> (method)
     public static Map<String, Method> services = new HashMap<>();
-    // map method -> instance
     public static Map<Method, Object> instances = new HashMap<>();
+    
+    private static volatile boolean running = true;
+    private static ExecutorService threadPool;
+    private static ServerSocket serverSocket;
 
     public static void loadServices(String[] args) {
         try {
             if (args != null && args.length > 0) {
-                // load provided classes
                 for (String className : args) {
                     try {
                         Class<?> c = Class.forName(className);
@@ -35,11 +39,9 @@ public class HttpServer {
                     }
                 }
             } else {
-                // auto-discover controllers on the classpath
                 for (String cpEntry : System.getProperty("java.class.path").split(System.getProperty("path.separator"))) {
                     Path p = Paths.get(cpEntry);
                     if (Files.isDirectory(p)) {
-                        // scan directory for .class files
                         Files.walk(p)
                                 .filter(fp -> fp.toString().endsWith(".class"))
                                 .forEach(fp -> {
@@ -49,7 +51,6 @@ public class HttpServer {
                                         Class<?> c = Class.forName(className);
                                         registerControllerClass(c);
                                     } catch (Throwable ex) {
-                                        // ignore load errors
                                     }
                                 });
                     } else if (cpEntry.endsWith(".jar")) {
@@ -59,7 +60,6 @@ public class HttpServer {
                                 JarEntry je = en.nextElement();
                                 String name = je.getName();
                                 if (name.endsWith(".class")) {
-                                    // handle Spring Boot repackaged JARs where classes are under BOOT-INF/classes/
                                     String className = name;
                                     if (className.startsWith("BOOT-INF/classes/")) {
                                         className = className.substring("BOOT-INF/classes/".length());
@@ -69,12 +69,10 @@ public class HttpServer {
                                         Class<?> c = Class.forName(className);
                                         registerControllerClass(c);
                                     } catch (Throwable ex) {
-                                        // ignore
                                     }
                                 }
                             }
                         } catch (IOException e) {
-                            // ignore
                         }
                     }
                 }
@@ -101,7 +99,6 @@ public class HttpServer {
                     }
                 }
             } catch (Throwable t) {
-                // ignore instantiation errors
             }
         }
     }
@@ -109,117 +106,148 @@ public class HttpServer {
     public static void runServer(String[] args) throws IOException, URISyntaxException, IllegalAccessException, InvocationTargetException {
         loadServices(args);
 
+        threadPool = Executors.newFixedThreadPool(10); 
         
-        ServerSocket serverSocket = null;
         try {
             serverSocket = new ServerSocket(35000);
+            System.out.println("Concurrent server started on port 35000");
+            System.out.println("Ready to receive connections...");
+            System.out.println("http://localhost:35000/");
+            
+            services.put("/shutdown", null);
+            
+            while (running) {
+                try {
+                    Socket clientSocket = serverSocket.accept();
+                    threadPool.submit(() -> handleClientRequest(clientSocket));
+                } catch (IOException e) {
+                    if (!running) {
+                        break;
+                    }
+                    System.err.println("Accept failed: " + e.getMessage());
+                }
+            }
         } catch (IOException e) {
             System.err.println("Could not listen on port: 35000.");
             System.exit(1);
+        } finally {
+            shutdown();
         }
-        Socket clientSocket = null;
+    }
 
-        boolean running = true;
-        while (running) {
-            try {
-                System.out.println("Listo para recibir ...");
-                System.out.println("por el puerto  35000");
-                System.out.println("http://localhost:35000/");
-                clientSocket = serverSocket.accept();
-            } catch (IOException e) {
-                System.err.println("Accept failed.");
-                System.exit(1);
-            }
-
-            PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(
-                    new InputStreamReader(
-                            clientSocket.getInputStream()));
-            String inputLine, outputLine;
-
-            String path = null;
+    /**
+     * Handle a single client request in its own thread
+     */
+    private static void handleClientRequest(Socket clientSocket) {
+        try (Socket socket = clientSocket;
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+            
+            String inputLine, outputLine = null;
             boolean firstline = true;
             URI requri = null;
 
             while ((inputLine = in.readLine()) != null) {
                 if (firstline) {
                     requri = new URI(inputLine.split(" ")[1]);
-                    System.out.println("Path: " + requri.getPath());
+                    System.out.println("Thread-" + Thread.currentThread().threadId() + " Path: " + requri.getPath());
                     firstline = false;
                 }
-                System.out.println("Received: " + inputLine);
                 if (!in.ready()) {
                     break;
                 }
             }
 
+            if (requri == null) {
+                outputLine = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nBad Request";
+                out.println(outputLine);
+                return;
+            }
+
             String reqPath = requri.getPath();
+            boolean alreadySent = false;
+            
+            if (reqPath.equals("/shutdown")) {
+                outputLine = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nServer shutting down...";
+                out.println(outputLine);
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(1000);
+                        stop();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }).start();
+                return;
+            }
+            
             if (reqPath.startsWith("/app/")) {
                 outputLine = invokeService(requri);
             } else if (services.containsKey(reqPath)) {
-                // allow direct paths like /hello to map to services registered as "/hello"
                 String q = requri.getQuery();
                 String fake = "/app" + reqPath + (q != null ? "?" + q : "");
                 outputLine = invokeService(new URI(fake));
             } else if (reqPath.equals("/hello") || reqPath.equals("/hellopost")) {
-                // simple internal handlers kept for the demo (returns JSON)
                 outputLine = helloService(requri);
             } else {
-                // Serve static resources from classpath /webroot
-                outputLine = staticResponse(requri);
+                try {
+                    writeStaticResponse(requri, socket.getOutputStream());
+                    alreadySent = true;
+                } catch (IOException e) {
+                    outputLine = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\n" + e.getMessage();
+                }
             }
-            out.println(outputLine);
-
-            out.close();
-            in.close();
-            clientSocket.close();
+ 
+            if (!alreadySent) {
+                out.println(outputLine);
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error handling client request: " + e.getMessage());
+            e.printStackTrace();
         }
-        serverSocket.close();
     }
 
     private static String helloService(URI requesturi) {
-        //Encabezado con content-type adaptado para retornar un JSON        
         String response = "HTTP/1.1 200 OK\n\r"
                 + "content-type: application/json\n\r"
                 + "\n\r";
-        //Extrae el valor de "name" desde el query.
-        String name = requesturi.getQuery().split("=")[1]; //name=jhon
+        String name = requesturi.getQuery().split("=")[1];
 
-        //Crea la respuesta completa                
         response = response + "{\"mensaje\": \"Hola " + name + "\"}";
         return response;
     }
 
-    private static String staticResponse(URI requri) {
+    /**
+     * Write a static resource response (header + body) directly to the provided OutputStream.
+     * Serves files from classpath "webroot/...". Binary files are written raw.
+     */
+    private static void writeStaticResponse(URI requri, OutputStream os) throws IOException {
         String path = requri.getPath();
         if (path.equals("/")) {
             path = "/index.html";
         }
-        // normalize path and build resource path
         if (!path.startsWith("/")) {
             path = "/" + path;
         }
         String resourcePath = "webroot" + path;
         System.out.println("Requesting static resource: " + resourcePath);
-        try {
-            try (InputStream is = HttpServer.class.getClassLoader().getResourceAsStream(resourcePath)) {
-                if (is == null) {
-                    System.out.println("Static resource not found: " + resourcePath);
-                    return "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\nNot Found";
-                }
-                byte[] bytes = is.readAllBytes();
-                String contentType = guessContentType(resourcePath);
-                String header = "HTTP/1.1 200 OK\r\n" + "content-type: " + contentType + "\r\n" + "\r\n";
-                if (contentType.startsWith("text/") || contentType.startsWith("application/javascript")) {
-                    return header + new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
-                } else {
-                    // for binary, return header and base64 body (simple approach)
-                    String body = java.util.Base64.getEncoder().encodeToString(bytes);
-                    return header + body;
-                }
+
+        try (InputStream is = HttpServer.class.getClassLoader().getResourceAsStream(resourcePath)) {
+            if (is == null) {
+                String notFound = "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\nNot Found";
+                os.write(notFound.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                os.flush();
+                return;
             }
-        } catch (IOException e) {
-            return "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\n" + e.getMessage();
+            byte[] bytes = is.readAllBytes();
+            String contentType = guessContentType(resourcePath);
+            String header = "HTTP/1.1 200 OK\r\n" + "Content-Type: " + contentType + "\r\n" + "\r\n";
+
+            os.write(header.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+            os.write(bytes);
+            os.flush();
         }
     }
 
@@ -229,13 +257,15 @@ public class HttpServer {
         if (resourcePath.endsWith(".css")) return "text/css; charset=UTF-8";
         if (resourcePath.endsWith(".png")) return "image/png";
         if (resourcePath.endsWith(".jpg") || resourcePath.endsWith(".jpeg")) return "image/jpeg";
+    if (resourcePath.endsWith(".ico")) return "image/x-icon";
+    if (resourcePath.endsWith(".gif")) return "image/gif";
+    if (resourcePath.endsWith(".svg")) return "image/svg+xml";
         return "application/octet-stream";
     }
 
 
     public static String invokeService(URI requri) throws IllegalAccessException, InvocationTargetException {
-        HttpRequest req = new HttpRequest(requri);
-        HttpResponse res = new HttpResponse();
+    HttpRequest req = new HttpRequest(requri);
         String service = requri.getPath().substring(4);
         Method s = services.get(service);
 
@@ -247,7 +277,6 @@ public class HttpServer {
             return header + "Not Found";
         }
 
-        // resolve parameters
         Parameter[] params = s.getParameters();
         Object[] args = new Object[params.length];
         for (int i = 0; i < params.length; i++) {
@@ -260,7 +289,7 @@ public class HttpServer {
                 if (val == null) val = defaultVal;
                 args[i] = val;
             } else {
-                args[i] = null; // unsupported param
+                args[i] = null; //
             }
         }
 
@@ -273,7 +302,49 @@ public class HttpServer {
     public static void staticfiles(String localFilesPath) {
     }
 
+    /**
+     * Stop the server gracefully
+     */
+    public static void stop() {
+        System.out.println("Stopping server...");
+        running = false;
+        try {
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
+            }
+        } catch (IOException e) {
+            System.err.println("Error closing server socket: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Shutdown thread pool and cleanup resources
+     */
+    private static void shutdown() {
+        System.out.println("Shutting down thread pool...");
+        if (threadPool != null) {
+            threadPool.shutdown();
+            try {
+                if (!threadPool.awaitTermination(30, TimeUnit.SECONDS)) {
+                    threadPool.shutdownNow();
+                    if (!threadPool.awaitTermination(60, TimeUnit.SECONDS)) {
+                        System.err.println("Thread pool did not terminate");
+                    }
+                }
+            } catch (InterruptedException e) {
+                threadPool.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+        System.out.println("Server shutdown complete.");
+    }
+
     public static void start(String[] args) throws IOException, URISyntaxException, IllegalAccessException, InvocationTargetException {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("\nReceived shutdown signal, stopping server...");
+            stop();
+        }));
+        
         runServer(args);
     }
 
@@ -286,10 +357,8 @@ public class HttpServer {
                 return header + new String(bytes);
             }
         } catch (IOException e) {
-            // fall through to embedded fallback
         }
 
-        // Fallback embedded HTML if resource not found
         return "HTTP/1.1 200 OK\r\n"
                 + "content-type: text/html\r\n"
                 + "\r\n"
