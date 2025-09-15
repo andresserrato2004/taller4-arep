@@ -1,0 +1,13 @@
+services:
+  web-framework:
+    build: .
+    container_name: taller3-arep-server
+    ports:
+      - "35000:35000"
+    environment:
+      - JAVA_OPTS=-Xmx512m -Xms256m
+      - SERVER_PORT=35000
+    volumes:
+      - ./logs:/app/logs
+
+    restart: unless-stopped
