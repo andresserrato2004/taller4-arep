@@ -150,7 +150,7 @@ public class HttpServer {
             while ((inputLine = in.readLine()) != null) {
                 if (firstline) {
                     requri = new URI(inputLine.split(" ")[1]);
-                    System.out.println("Thread-" + Thread.currentThread().threadId() + " Path: " + requri.getPath());
+                    System.out.println("Thread-" + Thread.currentThread().getId() + " Path: " + requri.getPath());
                     firstline = false;
                 }
                 if (!in.ready()) {
