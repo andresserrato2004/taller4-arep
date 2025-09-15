@@ -106,6 +106,12 @@ java -jar target/demo-0.0.1-SNAPSHOT.jar
 mvn test
 ```
 
+### para correrlo con docker debes usar  el comando 
+
+```bash
+docker compose up -d
+```
+
 Open `http://localhost:35000/` in your browser. Stop the server with Ctrl+C.
 
 ## Project structure
